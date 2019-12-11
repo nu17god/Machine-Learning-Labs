@@ -17,6 +17,8 @@ namespace ImageClassificationByKeras
 
         private void btnExcute_Click(object sender, EventArgs e)
         {
+            ctlOpenDialog.Filter = "Pictures |*.jpg";
+            ctlOpenDialog.InitialDirectory = Environment.CurrentDirectory;
             if (ctlOpenDialog.ShowDialog() == DialogResult.OK)
             {
                 ctlPicture.Image = new Bitmap(ctlOpenDialog.FileName);
