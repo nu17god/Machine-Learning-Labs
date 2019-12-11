@@ -1,0 +1,105 @@
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Windows.Forms;
+using OpenCvSharp;
+using Point = System.Drawing.Point;
+using Size = OpenCvSharp.Size;
+
+namespace Lab4
+{
+    public partial class Form1 : Form
+    {
+        string file = System.IO.File.ReadAllText("xml.xml");
+        VideoCapture vc = new VideoCapture(0);
+        Point PT;
+        Mat m1 = new Mat();
+        int index = 0;
+
+        public Form1()
+        {
+            InitializeComponent();
+            try
+            {
+                vc.Open(0);
+                m1=vc.RetrieveMat();
+                this.Height = 500;
+                this.Width = 640;
+                this.DoubleBuffered = true;
+
+                if (!System.IO.Directory.Exists("dataset")) System.IO.Directory.CreateDirectory("dataset");
+                if (!System.IO.Directory.Exists("dataset\\images")) System.IO.Directory.CreateDirectory("dataset\\images");
+                if (!System.IO.Directory.Exists("dataset\\annotations")) System.IO.Directory.CreateDirectory("dataset\\annotations");
+                if (!System.IO.Directory.Exists("dataset\\annotations\\xmls")) System.IO.Directory.CreateDirectory("dataset\\annotations\\xmls");
+                index = System.IO.Directory.GetFiles("dataset\\images", "class_*.jpg").Length;
+            }
+            catch (Exception)
+            {
+                MessageBox.Show("Камера не обнаружена! Присоедините камеру и перезапустите программу");
+                this.Close();
+            }
+            Application.Idle += IDLE;
+        }
+
+        private void IDLE(object sender, EventArgs e)
+        {
+            m1 = vc.RetrieveMat();
+            m1 = m1.Resize(new Size(640, 480));
+            BackgroundImage = OpenCvSharp.Extensions.BitmapConverter.ToBitmap(m1);
+        }
+
+
+        private void UP(object sender, MouseEventArgs e)
+        {
+            int x1 = Math.Min(e.X, PT.X);
+            int x2 = Math.Max(e.X, PT.X);
+            int y1 = Math.Min(e.Y, PT.Y);
+            int y2 = Math.Max(e.Y, PT.Y);
+
+
+            string file2 = file.Replace("X_1", x1.ToString());
+            file2 = file2.Replace("X_2", x2.ToString());
+            file2 = file2.Replace("Y_1", y1.ToString());
+            file2 = file2.Replace("Y_2", y2.ToString());
+
+            file2 = file2.Replace("FNAME", "class_" + index + ".jpg");
+
+            m1.SaveImage("dataset\\images\\class_" + index + ".jpg");
+            System.IO.File.WriteAllText("dataset\\annotations\\xmls\\class_" + index + ".xml", file2);
+            index++;
+
+            Application.Idle += IDLE;
+        }
+
+        private void DN(object sender, MouseEventArgs e)
+        {
+            Application.Idle -= IDLE;
+            PT = e.Location;
+        }
+
+        private void MV(object sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Left)
+            {
+                CreateGraphics().DrawImage(OpenCvSharp.Extensions.BitmapConverter.ToBitmap(m1), 0, 0);
+                CreateGraphics().DrawRectangle(new Pen(Color.Red, 2), new Rectangle(Math.Min(PT.X, e.X), Math.Min(PT.Y, e.Y), Math.Abs(PT.X - e.X), Math.Abs(PT.Y - e.Y)));
+
+                toolStripStatusLabel1.Text = "Текущий кадр: " + index + 
+                    "    X=" + Math.Min(PT.X, e.X) + 
+                    "    Y=" + Math.Min(PT.Y, e.Y) + 
+                    "    W=" + Math.Abs(PT.X - e.X) + 
+                    "    H=" + Math.Abs(PT.Y - e.Y);
+
+            }
+            else
+                toolStripStatusLabel1.Text = "Текущий кадр: " + index + "    X=" + e.X + "    Y=" + e.Y;
+
+            CreateGraphics().DrawLine(Pens.Lime, e.X, 0, e.X, 10000);
+            CreateGraphics().DrawLine(Pens.Lime, 0, e.Y, 10000, e.Y);
+        }
+    }
+}
